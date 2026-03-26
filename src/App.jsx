@@ -96,7 +96,8 @@ const EditIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="non
 const CloseIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const SendIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
 const SparkleIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/></svg>;
-
+const DownloadIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const UploadIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
 // ─── Tag Chip ────────────────────────────────────────────────────
 function TagChip({ tag, onRemove, onClick, active, small }) {
   const color = getTagColor(tag);
@@ -461,9 +462,43 @@ export default function IdeaBook() {
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => { setIdeas(loadIdeas()); }, []);
   useEffect(() => { saveIdeas(ideas); }, [ideas]);
+
+  const exportBackup = (currentIdeas) => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentIdeas, null, 2));
+    const dt = new Date();
+    const dateStr = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    const downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `ideabook-backup-${dateStr}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const importBackup = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedIdeas = JSON.parse(e.target.result);
+        if (Array.isArray(importedIdeas)) {
+          const existingIds = new Set(ideas.map(i => i.id));
+          const newIdeas = importedIdeas.filter(i => !existingIds.has(i.id));
+          setIdeas([...newIdeas, ...ideas].sort((a,b) => b.createdAt - a.createdAt));
+          alert(`Successfully imported ${newIdeas.length} new ideas.`);
+        }
+      } catch (err) {
+        alert("Failed to parse backup file.");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = null;
+  };
 
   const allTags = [...new Set(ideas.flatMap(i => i.tags))].sort();
 
@@ -475,8 +510,10 @@ export default function IdeaBook() {
 
   const handleSaveNew = (data) => {
     const newIdea = { id: Date.now().toString(), ...data, createdAt: Date.now(), updatedAt: Date.now() };
-    setIdeas([newIdea, ...ideas]);
+    const newIdeas = [newIdea, ...ideas];
+    setIdeas(newIdeas);
     setView("home");
+    exportBackup(newIdeas); // Trigger automatic backup
   };
 
   const handleUpdate = (data) => {
@@ -531,6 +568,17 @@ export default function IdeaBook() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
+            <input type="file" accept=".json" ref={fileInputRef} style={{ display: "none" }} onChange={importBackup} />
+            <button onClick={() => fileInputRef.current?.click()} style={{
+              background: "#F0E9DD", border: "none", borderRadius: 10,
+              width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#6B5E4E",
+            }} title="Import Backup"><UploadIcon /></button>
+            <button onClick={() => exportBackup(ideas)} style={{
+              background: "#F0E9DD", border: "none", borderRadius: 10,
+              width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#6B5E4E",
+            }} title="Export Backup"><DownloadIcon /></button>
             <button onClick={() => setShowSearch(!showSearch)} style={{
               background: showSearch ? "#2C2416" : "#F0E9DD", border: "none", borderRadius: 10,
               width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
