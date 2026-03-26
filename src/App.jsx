@@ -23,6 +23,9 @@ const TAG_CATEGORIES = {
   "api": ["api", "integration", "webhook", "endpoint", "developer", "sdk"],
   "hardware": ["hardware", "device", "iot", "sensor", "wearable", "embedded"],
   "design": ["design", "ux", "ui", "interface", "prototype", "figma", "visual"],
+  "music": ["music", "audio", "song", "audiobook", "playlist", "sound", "band", "concert", "artist"],
+  "construction": ["construction", "architecture", "building", "contractor", "renovation", "materials", "builder"],
+  "insurance": ["insurance", "policy", "premium", "coverage", "claim", "underwriting", "broker", "insurtech"],
 };
 
 function generateTags(text) {
